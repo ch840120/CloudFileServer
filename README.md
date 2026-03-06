@@ -1,7 +1,8 @@
 # CloudFileServer
 📁 雲端檔案管理系統
 ## 🛢️ Schema 設計 - ER Model 圖
-![alt text](image.png)
+<img width="1898" height="856" alt="CloudFileServerERModel" src="https://github.com/user-attachments/assets/c6490ef6-757f-4e1c-ae86-f7d341814f54" />
+
 
 ## 🌐 環境準備
 ### 🐳 MSSQL + UI建置
