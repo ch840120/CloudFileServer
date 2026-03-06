@@ -1,0 +1,16 @@
+Meeting Notes - Q1 Planning
+===========================
+Date: 2026-01-15
+Attendees: Alice, Bob, Carol
+
+Agenda:
+1. Review Q4 results
+2. Set Q1 targets
+3. Assign tasks
+
+Action Items:
+- Alice: Prepare budget report by Jan 20
+- Bob: Update roadmap document
+- Carol: Schedule follow-up meeting
+
+Next meeting: 2026-01-29

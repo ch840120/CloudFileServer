@@ -1,3 +1,4 @@
+using CloudFileServer.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -12,8 +13,7 @@ public static class PersistentServiceExtensions
         services.AddDbContext<AppDbContext>(options =>
             options.UseSqlServer(connectionString));
 
-        // Register repositories here, e.g.:
-        // services.AddScoped<IFileRepository, FileRepository>();
+        services.AddScoped<INodeTreeRepository, NodeTreeRepository>();
 
         return services;
     }

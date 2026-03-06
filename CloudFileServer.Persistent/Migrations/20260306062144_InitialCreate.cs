@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
+#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
+
 namespace CloudFileServer.Persistent.Migrations
 {
     /// <inheritdoc />
@@ -150,6 +152,64 @@ namespace CloudFileServer.Persistent.Migrations
                         principalTable: "Nodes",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.InsertData(
+                table: "NodeTypes",
+                columns: new[] { "Id", "Code", "CreatedAt", "IsLeaf" },
+                values: new object[,]
+                {
+                    { (short)1, (short)0, new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc), false },
+                    { (short)2, (short)1, new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc), true },
+                    { (short)3, (short)2, new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc), true },
+                    { (short)4, (short)3, new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc), true }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Tags",
+                columns: new[] { "Id", "Color", "Name" },
+                values: new object[,]
+                {
+                    { 1, "#F44336", "Urgent" },
+                    { 2, "#2196F3", "Work" },
+                    { 3, "#4CAF50", "Personal" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Nodes",
+                columns: new[] { "Id", "CreatedAt", "DeletedAt", "IsDeleted", "Name", "NodeTypeId", "ParentId", "SizeBytes", "StoragePath", "UpdatedAt" },
+                values: new object[,]
+                {
+                    { 1L, new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc), null, false, "Root", (short)1, null, null, null, new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 2L, new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc), null, false, "Documents", (short)1, 1L, null, null, new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 3L, new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc), null, false, "Images", (short)1, 1L, null, null, new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 4L, new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc), null, false, "Personal", (short)1, 1L, null, null, new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 5L, new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc), null, false, "Annual Report", (short)2, 2L, 153600L, "docs/annual-report.docx", new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 6L, new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc), null, false, "Meeting Notes", (short)4, 2L, 2048L, "docs/meeting-notes.txt", new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 7L, new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc), null, false, "Sunset", (short)3, 3L, 512000L, "images/sunset.jpg", new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 8L, new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc), null, false, "Profile", (short)3, 3L, 204800L, "images/profile.jpg", new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 9L, new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc), null, false, "Diary", (short)2, 4L, 81920L, "personal/diary.docx", new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc) }
+                });
+
+            migrationBuilder.InsertData(
+                table: "NodeTags",
+                columns: new[] { "NodeId", "TagId" },
+                values: new object[,]
+                {
+                    { 5L, 1 },
+                    { 5L, 2 },
+                    { 6L, 2 },
+                    { 8L, 3 },
+                    { 9L, 3 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "NodeWordMeta",
+                columns: new[] { "NodeId", "PageCount" },
+                values: new object[,]
+                {
+                    { 5L, 12 },
+                    { 9L, 5 }
                 });
 
             migrationBuilder.CreateIndex(

@@ -21,5 +21,6 @@ public class NodeTagConfiguration : IEntityTypeConfiguration<NodeTag>
             .WithMany()
             .HasForeignKey(e => e.TagId)
             .OnDelete(DeleteBehavior.Cascade);
+
     }
 }

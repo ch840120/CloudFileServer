@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CloudFileServer.Persistent.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260306040120_InitialCreate")]
+    [Migration("20260306062144_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -70,6 +70,107 @@ namespace CloudFileServer.Persistent.Migrations
                     b.HasIndex("ParentId");
 
                     b.ToTable("Nodes", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1L,
+                            CreatedAt = new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsDeleted = false,
+                            Name = "Root",
+                            NodeTypeId = (short)1,
+                            UpdatedAt = new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = 2L,
+                            CreatedAt = new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsDeleted = false,
+                            Name = "Documents",
+                            NodeTypeId = (short)1,
+                            ParentId = 1L,
+                            UpdatedAt = new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = 3L,
+                            CreatedAt = new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsDeleted = false,
+                            Name = "Images",
+                            NodeTypeId = (short)1,
+                            ParentId = 1L,
+                            UpdatedAt = new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = 4L,
+                            CreatedAt = new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsDeleted = false,
+                            Name = "Personal",
+                            NodeTypeId = (short)1,
+                            ParentId = 1L,
+                            UpdatedAt = new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = 5L,
+                            CreatedAt = new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsDeleted = false,
+                            Name = "Annual Report",
+                            NodeTypeId = (short)2,
+                            ParentId = 2L,
+                            SizeBytes = 153600L,
+                            StoragePath = "docs/annual-report.docx",
+                            UpdatedAt = new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = 6L,
+                            CreatedAt = new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsDeleted = false,
+                            Name = "Meeting Notes",
+                            NodeTypeId = (short)4,
+                            ParentId = 2L,
+                            SizeBytes = 2048L,
+                            StoragePath = "docs/meeting-notes.txt",
+                            UpdatedAt = new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = 7L,
+                            CreatedAt = new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsDeleted = false,
+                            Name = "Sunset",
+                            NodeTypeId = (short)3,
+                            ParentId = 3L,
+                            SizeBytes = 512000L,
+                            StoragePath = "images/sunset.jpg",
+                            UpdatedAt = new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = 8L,
+                            CreatedAt = new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsDeleted = false,
+                            Name = "Profile",
+                            NodeTypeId = (short)3,
+                            ParentId = 3L,
+                            SizeBytes = 204800L,
+                            StoragePath = "images/profile.jpg",
+                            UpdatedAt = new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = 9L,
+                            CreatedAt = new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsDeleted = false,
+                            Name = "Diary",
+                            NodeTypeId = (short)2,
+                            ParentId = 4L,
+                            SizeBytes = 81920L,
+                            StoragePath = "personal/diary.docx",
+                            UpdatedAt = new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc)
+                        });
                 });
 
             modelBuilder.Entity("CloudFileServer.Domain.Models.NodeImageMeta", b =>
@@ -101,6 +202,33 @@ namespace CloudFileServer.Persistent.Migrations
                     b.HasIndex("TagId");
 
                     b.ToTable("NodeTags", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            NodeId = 5L,
+                            TagId = 1
+                        },
+                        new
+                        {
+                            NodeId = 5L,
+                            TagId = 2
+                        },
+                        new
+                        {
+                            NodeId = 6L,
+                            TagId = 2
+                        },
+                        new
+                        {
+                            NodeId = 8L,
+                            TagId = 3
+                        },
+                        new
+                        {
+                            NodeId = 9L,
+                            TagId = 3
+                        });
                 });
 
             modelBuilder.Entity("CloudFileServer.Domain.Models.NodeTextMeta", b =>
@@ -138,6 +266,36 @@ namespace CloudFileServer.Persistent.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("NodeTypes", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = (short)1,
+                            Code = (short)0,
+                            CreatedAt = new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsLeaf = false
+                        },
+                        new
+                        {
+                            Id = (short)2,
+                            Code = (short)1,
+                            CreatedAt = new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsLeaf = true
+                        },
+                        new
+                        {
+                            Id = (short)3,
+                            Code = (short)2,
+                            CreatedAt = new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsLeaf = true
+                        },
+                        new
+                        {
+                            Id = (short)4,
+                            Code = (short)3,
+                            CreatedAt = new DateTime(2026, 3, 6, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsLeaf = true
+                        });
                 });
 
             modelBuilder.Entity("CloudFileServer.Domain.Models.NodeWordMeta", b =>
@@ -151,6 +309,18 @@ namespace CloudFileServer.Persistent.Migrations
                     b.HasKey("NodeId");
 
                     b.ToTable("NodeWordMeta", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            NodeId = 5L,
+                            PageCount = 12
+                        },
+                        new
+                        {
+                            NodeId = 9L,
+                            PageCount = 5
+                        });
                 });
 
             modelBuilder.Entity("CloudFileServer.Domain.Models.Tag", b =>
@@ -174,6 +344,26 @@ namespace CloudFileServer.Persistent.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Tags", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Color = "#F44336",
+                            Name = "Urgent"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Color = "#2196F3",
+                            Name = "Work"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Color = "#4CAF50",
+                            Name = "Personal"
+                        });
                 });
 
             modelBuilder.Entity("CloudFileServer.Domain.Models.Node", b =>

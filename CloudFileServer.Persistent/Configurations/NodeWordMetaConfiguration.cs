@@ -14,5 +14,6 @@ public class NodeWordMetaConfiguration : IEntityTypeConfiguration<NodeWordMeta>
             .WithOne()
             .HasForeignKey<NodeWordMeta>(e => e.NodeId)
             .OnDelete(DeleteBehavior.Cascade);
+
     }
 }
