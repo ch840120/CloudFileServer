@@ -70,54 +70,216 @@ dotnet ef database update `
 ### 🧪 初始化假資料，SQL INSERT語法（使用者自行執行）
 ```sql
 USE [CloudFileServer];
--- 0. 清空所有資料表（依照外鍵順序，子表先刪）
-DELETE FROM NodeTags;
-DELETE FROM NodeWordMeta;
-DELETE FROM NodeTextMeta;
-DELETE FROM NodeImageMeta;
-DELETE FROM Nodes;
-DELETE FROM NodeTypes;
-DELETE FROM Tags;
+  -- =============================================
+  -- 清除舊資料
+  -- =============================================
+  DELETE FROM NodeTags;
+  DELETE FROM NodeWordMeta;
+  DELETE FROM NodeTextMeta;
+  DELETE FROM NodeImageMeta;
+  DELETE FROM Nodes;
+  DELETE FROM Tags;
+  DELETE FROM NodeTypes;
 
--- 重置 Identity 從 1 開始
-DBCC CHECKIDENT ('NodeTypes', RESEED, 0);
-DBCC CHECKIDENT ('Tags',      RESEED, 0);
-DBCC CHECKIDENT ('Nodes',     RESEED, 0);
+  -- =============================================
+  -- NodeTypes
+  -- =============================================
+  INSERT INTO NodeTypes (Code, IsLeaf, CreatedAt) VALUES (0, 0, GETUTCDATE());
+  INSERT INTO NodeTypes (Code, IsLeaf, CreatedAt) VALUES (1, 1, GETUTCDATE());
+  INSERT INTO NodeTypes (Code, IsLeaf, CreatedAt) VALUES (2, 1, GETUTCDATE());
+  INSERT INTO NodeTypes (Code, IsLeaf, CreatedAt) VALUES (3, 1, GETUTCDATE());
 
--- 1. NodeTypes
-INSERT INTO NodeTypes (Code, IsLeaf, CreatedAt) VALUES
-(0, 0, GETUTCDATE()),
-(1, 1, GETUTCDATE()),
-(2, 1, GETUTCDATE()),
-(3, 1, GETUTCDATE());
+  -- =============================================
+  -- Tags
+  -- =============================================
+  INSERT INTO Tags (Name, Color) VALUES ('Urgent',   '#F44336');
+  INSERT INTO Tags (Name, Color) VALUES ('Work',     '#2196F3');
+  INSERT INTO Tags (Name, Color) VALUES ('Personal', '#4CAF50');
+  INSERT INTO Tags (Name, Color) VALUES ('Archive',  '#9E9E9E');
+  INSERT INTO Tags (Name, Color) VALUES ('Draft',    '#FF9800');
 
--- 2. Tags
-INSERT INTO Tags (Name, Color) VALUES
-('Urgent',   '#F44336'),
-('Work',     '#2196F3'),
-('Personal', '#4CAF50');
+  -- =============================================
+  -- Nodes
+  -- 注意：目錄節點 StoragePath IS NULL，用此區分同名的檔案節點
+  -- =============================================
 
--- 3. Nodes
-INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt) VALUES
-(1, NULL, 'Root',          NULL,   NULL,                      0, NULL, GETUTCDATE(), GETUTCDATE()),
-(1,    1, 'Documents',     NULL,   NULL,                      0, NULL, GETUTCDATE(), GETUTCDATE()),
-(1,    1, 'Images',        NULL,   NULL,                      0, NULL, GETUTCDATE(), GETUTCDATE()),
-(1,    1, 'Personal',      NULL,   NULL,                      0, NULL, GETUTCDATE(), GETUTCDATE()),
-(2,    2, 'Annual Report', 153600, 'docs/annual-report.docx',  0, NULL, GETUTCDATE(), GETUTCDATE()),
-(4,    2, 'Meeting Notes', 2048,   'docs/meeting-notes.txt',   0, NULL, GETUTCDATE(), GETUTCDATE()),
-(3,    3, 'Sunset',        512000, 'images/sunset.jpg',        0, NULL, GETUTCDATE(), GETUTCDATE()),
-(3,    3, 'Profile',       204800, 'images/profile.jpg',       0, NULL, GETUTCDATE(), GETUTCDATE()),
-(2,    4, 'Diary',         81920,  'personal/diary.docx',      0, NULL, GETUTCDATE(), GETUTCDATE());
+  -- Level 1
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=0), NULL, 'Root', NULL, NULL, 0, NULL, GETUTCDATE(), GETUTCDATE());
 
--- 4. Meta tables
-INSERT INTO NodeWordMeta  (NodeId, PageCount)         VALUES (5, 12), (9, 5);
-INSERT INTO NodeTextMeta  (NodeId, Encoding)          VALUES (6, 'UTF-8');
-INSERT INTO NodeImageMeta (NodeId, WidthPx, HeightPx) VALUES (7, 1920, 1080), (8, 400, 400);
+  -- Level 2
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=0), (SELECT Id FROM Nodes WHERE Name='Root' AND StoragePath IS NULL), 'Documents', NULL, NULL, 0, NULL, GETUTCDATE(), GETUTCDATE());
 
--- 5. NodeTags
-INSERT INTO NodeTags (NodeId, TagId) VALUES
-(5, 1), (5, 2),
-(6, 2),
-(8, 3),
-(9, 3);
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=0), (SELECT Id FROM Nodes WHERE Name='Root' AND StoragePath IS NULL), 'Images', NULL, NULL, 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=0), (SELECT Id FROM Nodes WHERE Name='Root' AND StoragePath IS NULL), 'Personal', NULL, NULL, 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=0), (SELECT Id FROM Nodes WHERE Name='Root' AND StoragePath IS NULL), 'Archive', NULL, NULL, 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  -- Level 3
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=0), (SELECT Id FROM Nodes WHERE Name='Documents' AND StoragePath IS NULL), 'Projects', NULL, NULL, 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=0), (SELECT Id FROM Nodes WHERE Name='Documents' AND StoragePath IS NULL), 'Reports', NULL, NULL, 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=0), (SELECT Id FROM Nodes WHERE Name='Documents' AND StoragePath IS NULL), 'Templates', NULL, NULL, 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=0), (SELECT Id FROM Nodes WHERE Name='Images' AND StoragePath IS NULL), 'Wallpapers', NULL, NULL, 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=0), (SELECT Id FROM Nodes WHERE Name='Images' AND StoragePath IS NULL), 'Profile', NULL, NULL, 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=0), (SELECT Id FROM Nodes WHERE Name='Personal' AND StoragePath IS NULL), 'Diary', NULL, NULL, 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=0), (SELECT Id FROM Nodes WHERE Name='Personal' AND StoragePath IS NULL), 'Notes', NULL, NULL, 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=0), (SELECT Id FROM Nodes WHERE Name='Archive' AND StoragePath IS NULL), '2023', NULL, NULL, 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=0), (SELECT Id FROM Nodes WHERE Name='Archive' AND StoragePath IS NULL), '2024', NULL, NULL, 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  -- Level 4: Project sub-directories
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=0), (SELECT Id FROM Nodes WHERE Name='Projects' AND StoragePath IS NULL), 'Alpha', NULL, NULL, 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=0), (SELECT Id FROM Nodes WHERE Name='Projects' AND StoragePath IS NULL), 'Beta', NULL, NULL, 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  -- Level 5: Files in Alpha
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=1), (SELECT Id FROM Nodes WHERE Name='Alpha' AND StoragePath IS NULL), 'spec', 153600, 'Documents/Projects/Alpha/spec.docx', 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=2), (SELECT Id FROM Nodes WHERE Name='Alpha' AND StoragePath IS NULL), 'wireframe', 204800, 'Documents/Projects/Alpha/wireframe.jpg', 0, NULL, GETUTCDATE(), GETUTCDATE()); 
+
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=3), (SELECT Id FROM Nodes WHERE Name='Alpha' AND StoragePath IS NULL), 'notes', 2048, 'Documents/Projects/Alpha/notes.txt', 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  -- Files in Beta
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=1), (SELECT Id FROM Nodes WHERE Name='Beta' AND StoragePath IS NULL), 'proposal', 122880, 'Documents/Projects/Beta/proposal.docx', 0, NULL, GETUTCDATE(), GETUTCDATE());    
+
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=2), (SELECT Id FROM Nodes WHERE Name='Beta' AND StoragePath IS NULL), 'mockup', 307200, 'Documents/Projects/Beta/mockup.jpg', 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  -- Files in Reports
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=1), (SELECT Id FROM Nodes WHERE Name='Reports' AND StoragePath IS NULL), 'annual-report', 512000, 'Documents/Reports/annual-report.docx', 0, NULL, GETUTCDATE(),
+  GETUTCDATE());
+
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=1), (SELECT Id FROM Nodes WHERE Name='Reports' AND StoragePath IS NULL), 'q1-summary', 102400, 'Documents/Reports/q1-summary.docx', 0, NULL, GETUTCDATE(), GETUTCDATE());   
+
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=3), (SELECT Id FROM Nodes WHERE Name='Reports' AND StoragePath IS NULL), 'meeting-notes', 4096, 'Documents/Reports/meeting-notes.txt', 0, NULL, GETUTCDATE(), GETUTCDATE());
+  -- Files in Templates
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=1), (SELECT Id FROM Nodes WHERE Name='Templates' AND StoragePath IS NULL), 'contract', 81920, 'Documents/Templates/contract.docx', 0, NULL, GETUTCDATE(), GETUTCDATE());    
+
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=1), (SELECT Id FROM Nodes WHERE Name='Templates' AND StoragePath IS NULL), 'invoice', 40960, 'Documents/Templates/invoice.docx', 0, NULL, GETUTCDATE(), GETUTCDATE());      
+
+  -- Files in Wallpapers
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=2), (SELECT Id FROM Nodes WHERE Name='Wallpapers' AND StoragePath IS NULL), 'sunset', 524288, 'Images/Wallpapers/sunset.jpg', 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=2), (SELECT Id FROM Nodes WHERE Name='Wallpapers' AND StoragePath IS NULL), 'mountain', 614400, 'Images/Wallpapers/mountain.jpg', 0, NULL, GETUTCDATE(), GETUTCDATE());     
+
+  -- Files in Profile
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=2), (SELECT Id FROM Nodes WHERE Name='Profile' AND StoragePath IS NULL), 'avatar', 204800, 'Images/Profile/avatar.jpg', 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=2), (SELECT Id FROM Nodes WHERE Name='Profile' AND StoragePath IS NULL), 'cover', 409600, 'Images/Profile/cover.jpg', 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  -- Files in Diary
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=1), (SELECT Id FROM Nodes WHERE Name='Diary' AND StoragePath IS NULL), '2024', 65536, 'Personal/Diary/2024.docx', 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=1), (SELECT Id FROM Nodes WHERE Name='Diary' AND StoragePath IS NULL), '2025', 49152, 'Personal/Diary/2025.docx', 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  -- Files in Notes
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=3), (SELECT Id FROM Nodes WHERE Name='Notes' AND StoragePath IS NULL), 'todo', 1024, 'Personal/Notes/todo.txt', 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=3), (SELECT Id FROM Nodes WHERE Name='Notes' AND StoragePath IS NULL), 'ideas', 2048, 'Personal/Notes/ideas.txt', 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  -- Files in 2023
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=1), (SELECT Id FROM Nodes WHERE Name='2023' AND StoragePath IS NULL), 'old-report', 204800, 'Archive/2023/old-report.docx', 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=3), (SELECT Id FROM Nodes WHERE Name='2023' AND StoragePath IS NULL), 'backup-notes', 3072, 'Archive/2023/backup-notes.txt', 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  -- Files in 2024 (Archive)
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=1), (SELECT Id FROM Nodes WHERE Name='2024' AND StoragePath IS NULL), 'year-review', 307200, 'Archive/2024/year-review.docx', 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  INSERT INTO Nodes (NodeTypeId, ParentId, Name, SizeBytes, StoragePath, IsDeleted, DeletedAt, CreatedAt, UpdatedAt)
+  VALUES ((SELECT Id FROM NodeTypes WHERE Code=2), (SELECT Id FROM Nodes WHERE Name='2024' AND StoragePath IS NULL), 'summary', 153600, 'Archive/2024/summary.jpg', 0, NULL, GETUTCDATE(), GETUTCDATE());
+
+  -- =============================================
+  -- Meta tables（用 StoragePath 唯一識別每個檔案）
+  -- =============================================
+  INSERT INTO NodeWordMeta (NodeId, PageCount) VALUES
+  ((SELECT Id FROM Nodes WHERE StoragePath='Documents/Projects/Alpha/spec.docx'), 8),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Documents/Projects/Beta/proposal.docx'), 5),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Documents/Reports/annual-report.docx'), 24),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Documents/Reports/q1-summary.docx'), 6),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Documents/Templates/contract.docx'), 12),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Documents/Templates/invoice.docx'), 3),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Personal/Diary/2024.docx'), 120),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Personal/Diary/2025.docx'), 85),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Archive/2023/old-report.docx'), 15),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Archive/2024/year-review.docx'), 10);
+
+  INSERT INTO NodeTextMeta (NodeId, Encoding) VALUES
+  ((SELECT Id FROM Nodes WHERE StoragePath='Documents/Projects/Alpha/notes.txt'), 'UTF-8'),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Documents/Reports/meeting-notes.txt'), 'UTF-8'),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Personal/Notes/todo.txt'), 'UTF-8'),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Personal/Notes/ideas.txt'), 'UTF-8'),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Archive/2023/backup-notes.txt'), 'UTF-8');
+
+  INSERT INTO NodeImageMeta (NodeId, WidthPx, HeightPx) VALUES
+  ((SELECT Id FROM Nodes WHERE StoragePath='Documents/Projects/Alpha/wireframe.jpg'), 1920, 1080),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Documents/Projects/Beta/mockup.jpg'), 1280, 720),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Images/Wallpapers/sunset.jpg'), 3840, 2160),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Images/Wallpapers/mountain.jpg'), 2560, 1440),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Images/Profile/avatar.jpg'), 400, 400),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Images/Profile/cover.jpg'), 1500, 500),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Archive/2024/summary.jpg'), 1200, 800);
+
+  -- =============================================
+  -- NodeTags
+  -- =============================================
+  INSERT INTO NodeTags (NodeId, TagId) VALUES
+  ((SELECT Id FROM Nodes WHERE StoragePath='Documents/Projects/Alpha/spec.docx'),    (SELECT Id FROM Tags WHERE Name='Work')),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Documents/Projects/Alpha/spec.docx'),    (SELECT Id FROM Tags WHERE Name='Draft')),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Documents/Projects/Alpha/notes.txt'),    (SELECT Id FROM Tags WHERE Name='Work')),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Documents/Projects/Beta/proposal.docx'), (SELECT Id FROM Tags WHERE Name='Work')),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Documents/Projects/Beta/proposal.docx'), (SELECT Id FROM Tags WHERE Name='Draft')),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Documents/Reports/annual-report.docx'),  (SELECT Id FROM Tags WHERE Name='Urgent')),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Documents/Reports/annual-report.docx'),  (SELECT Id FROM Tags WHERE Name='Work')),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Documents/Reports/q1-summary.docx'),     (SELECT Id FROM Tags WHERE Name='Work')),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Documents/Reports/meeting-notes.txt'),   (SELECT Id FROM Tags WHERE Name='Work')),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Documents/Templates/contract.docx'),     (SELECT Id FROM Tags WHERE Name='Work')),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Personal/Diary/2024.docx'),              (SELECT Id FROM Tags WHERE Name='Personal')),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Personal/Diary/2025.docx'),              (SELECT Id FROM Tags WHERE Name='Personal')),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Personal/Notes/todo.txt'),               (SELECT Id FROM Tags WHERE Name='Personal')),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Archive/2023/old-report.docx'),          (SELECT Id FROM Tags WHERE Name='Archive')),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Archive/2023/backup-notes.txt'),         (SELECT Id FROM Tags WHERE Name='Archive')),
+  ((SELECT Id FROM Nodes WHERE StoragePath='Archive/2024/year-review.docx'),         (SELECT Id FROM Tags WHERE Name='Archive'));
 ```
