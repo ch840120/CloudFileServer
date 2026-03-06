@@ -57,3 +57,7 @@ nunit-*.xml
 appsettings.Development.json
 appsettings.*.json
 !appsettings.json
+
+# IDE and tool-specific directories
+.vs/
+.claude/
