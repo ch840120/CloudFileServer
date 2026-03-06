@@ -1,4 +1,6 @@
 using CloudFileServer.Domain.Interfaces;
+using CloudFileServer.Persistent.Repository;
+using CloudFileServer.Persistent.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,6 +16,9 @@ public static class PersistentServiceExtensions
             options.UseSqlServer(connectionString));
 
         services.AddScoped<INodeTreeRepository, NodeTreeRepository>();
+        services.AddScoped<INodeEditRepository, NodeEditRepository>();
+        services.AddScoped<ITagRepository, TagRepository>();
+        services.AddSingleton<IFileStorageService, MockFileStorageService>();
 
         return services;
     }

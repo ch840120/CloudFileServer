@@ -1,5 +1,7 @@
 # CloudFileServer
 📁 雲端檔案管理系統
+## 🛢️ Schema 設計 - ER Model 圖
+![alt text](image.png)
 
 ## 🌐 環境準備
 ### 🐳 MSSQL + UI建置
@@ -56,7 +58,7 @@ networks:
 docker compose up -d
 ```
 
-### 🏗️ ER Model Code Frist建庫
+### 🏗️ ER Model Code First建庫
 ```bash
 cd {專案路徑}\CloudFileServer.Persistent
 

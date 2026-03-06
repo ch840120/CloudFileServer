@@ -171,6 +171,38 @@ namespace CloudFileServer.Persistent.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Tags", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 4,
+                            Color = "#FF9800",
+                            Name = "Review"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Color = "#9E9E9E",
+                            Name = "Archive"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Color = "#9C27B0",
+                            Name = "Draft"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Color = "#00BCD4",
+                            Name = "Finance"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Color = "#8BC34A",
+                            Name = "Shared"
+                        });
                 });
 
             modelBuilder.Entity("CloudFileServer.Domain.Models.Node", b =>

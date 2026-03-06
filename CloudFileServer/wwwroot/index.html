@@ -51,8 +51,9 @@
       transition: background 0.1s;
     }
 
-    .btn:hover { background: #30363d; }
-    .btn:active { background: #388bfd22; border-color: #58a6ff; }
+    .btn:hover:not(:disabled) { background: #30363d; }
+    .btn:active:not(:disabled) { background: #388bfd22; border-color: #58a6ff; }
+    .btn:disabled { opacity: 0.38; cursor: not-allowed; }
 
     .ext-input {
       background: #0d1117;
@@ -96,8 +97,8 @@
 
     /* Tree panel */
     .panel-tree {
-      width: 380px;
-      min-width: 220px;
+      width: 500px;
+      min-width: 260px;
       background: #0d1117;
       border-right: 1px solid #21262d;
       display: flex;
@@ -126,9 +127,7 @@
     #tree-container::-webkit-scrollbar-track { background: transparent; }
     #tree-container::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
 
-    .tree-node {
-      user-select: none;
-    }
+    .tree-node { user-select: none; }
 
     .tree-row {
       display: flex;
@@ -186,7 +185,9 @@
     }
 
     .tag-chip {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
       padding: 1px 6px;
       border-radius: 10px;
       font-size: 11px;
@@ -194,6 +195,18 @@
       color: #0d1117;
       white-space: nowrap;
     }
+
+    .tag-remove-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 12px;
+      padding: 0;
+      line-height: 1;
+      opacity: 0.8;
+    }
+    .tag-remove-btn:hover { opacity: 1; }
 
     .children { display: block; }
     .children.hidden { display: none; }
@@ -225,24 +238,21 @@
       line-height: 1.6;
     }
 
-    .log-time {
-      color: #484f58;
-      flex-shrink: 0;
-      min-width: 90px;
-    }
-
+    .log-time { color: #484f58; flex-shrink: 0; min-width: 90px; }
     .log-msg { color: #c9d1d9; }
-    .log-msg.info { color: #3fb950; }
+    .log-msg.info  { color: #3fb950; }
     .log-msg.error { color: #f85149; }
-    .log-msg.warn { color: #d29922; }
+    .log-msg.warn  { color: #d29922; }
 
-    /* Detail pane at bottom of log */
+    /* Detail pane */
     #detail-pane {
       border-top: 1px solid #21262d;
       padding: 10px 14px;
       background: #161b22;
       font-size: 12px;
-      min-height: 60px;
+      min-height: 80px;
+      max-height: 340px;
+      overflow-y: auto;
       flex-shrink: 0;
       color: #8b949e;
     }
@@ -252,13 +262,184 @@
     #detail-pane td:first-child { color: #484f58; white-space: nowrap; min-width: 110px; }
     #detail-pane td:last-child { color: #c9d1d9; }
 
-    .loading-placeholder {
-      padding: 20px 14px;
+    /* ── Tag bar in detail pane (top, inline) ─────────────────────── */
+    .detail-tags-bar {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 5px;
+      padding: 7px 0 9px;
+      border-bottom: 1px solid #21262d;
+      margin-bottom: 9px;
+    }
+
+    .detail-tags-bar-label {
+      font-size: 11px;
       color: #484f58;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      white-space: nowrap;
+      margin-right: 2px;
+      flex-shrink: 0;
+    }
+
+    .tag-add-inline {
+      display: none;
+      align-items: center;
+      gap: 4px;
+    }
+    .tag-add-inline.open { display: flex; }
+
+    .detail-select {
+      background: #0d1117;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: inherit;
+      max-width: 130px;
+    }
+    .detail-select:focus { outline: none; border-color: #58a6ff; }
+
+    .btn-tag-open {
+      background: none;
+      border: 1px dashed #30363d;
+      color: #58a6ff;
+      border-radius: 10px;
+      padding: 1px 8px;
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .btn-tag-open:hover { border-color: #58a6ff; background: #1f6feb22; }
+    .btn-tag-open.active { border-style: solid; border-color: #58a6ff; }
+
+    .btn-add-tag {
+      background: #1f6feb;
+      color: #fff;
+      border-color: #388bfd;
+    }
+    .btn-add-tag:hover:not(:disabled) { background: #388bfd; }
+
+    .loading-placeholder { padding: 20px 14px; color: #484f58; }
+
+    /* Loading overlay */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(13, 13, 13, 0.65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .loading-overlay.hidden { display: none; }
+
+    .loading-spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid #30363d;
+      border-top-color: #58a6ff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Responsive ─────────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .panel-tree { width: 360px; }
+    }
+
+    @media (max-width: 700px) {
+      .main { flex-direction: column; }
+
+      .panel-tree {
+        width: 100%;
+        min-width: unset;
+        border-right: none;
+        border-bottom: 1px solid #21262d;
+        max-height: 42vh;
+      }
+
+      .panel-log { min-height: 0; }
+
+      #detail-pane { max-height: 280px; }
+
+      .feature-bar { display: none; }
+
+      header h1 { font-size: 12px; letter-spacing: 0; }
+
+      .toolbar { gap: 5px; padding: 5px 10px; }
+
+      .btn { padding: 3px 8px; font-size: 11px; }
+
+      .ext-input { width: 68px; font-size: 11px; }
+    }
+
+    @media (max-width: 480px) {
+      .toolbar-sep { display: none; }
+
+      header { padding: 7px 12px; }
+
+      #sort-by  { width: 76px; }
+      #sort-order { width: 54px; }
+    }
+
+    /* Feature description bar */
+    .feature-bar {
+      background: #0d1117;
+      border-bottom: 1px solid #21262d;
+      padding: 5px 14px;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+      font-size: 11px;
+      color: #8b949e;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 14px 2px 0;
+    }
+
+    .feature-item + .feature-item {
+      border-left: 1px solid #21262d;
+      padding-left: 14px;
+    }
+
+    .feature-label {
+      color: #58a6ff;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    .feature-desc {
+      color: #6e7681;
+    }
+
+    .feature-tag-badge {
+      display: inline-block;
+      padding: 0 5px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: bold;
+      color: #0d1117;
     }
   </style>
 </head>
 <body>
+
+<div id="loading-overlay" class="loading-overlay hidden">
+  <div class="loading-spinner"></div>
+</div>
 
 <header>
   <div class="status-dot" id="status-dot"></div>
@@ -266,6 +447,7 @@
 </header>
 
 <div class="toolbar">
+  <!-- 原有功能 -->
   <button class="btn" onclick="calcSize()">計算總容量</button>
   <div class="toolbar-sep"></div>
   <input class="ext-input" id="ext-input" type="text" placeholder=".docx" value=".docx" />
@@ -273,7 +455,57 @@
   <div class="toolbar-sep"></div>
   <button class="btn" onclick="exportXml()">XML 輸出</button>
   <div class="toolbar-sep"></div>
+
+  <!-- 排序 -->
+  <select id="sort-by" class="ext-input" style="width:90px">
+    <option value="">排序欄位</option>
+    <option value="name">名稱</option>
+    <option value="size">大小</option>
+    <option value="extension">副檔名</option>
+  </select>
+  <select id="sort-order" class="ext-input" style="width:62px">
+    <option value="asc">升冪</option>
+    <option value="desc">降冪</option>
+  </select>
+  <button class="btn" onclick="applySort()">套用</button>
+  <div class="toolbar-sep"></div>
+
+  <!-- 編輯 -->
+  <button class="btn" id="btn-delete" disabled onclick="deleteSelected()">刪除</button>
+  <button class="btn" id="btn-copy"   disabled onclick="copySelected()">複製</button>
+  <button class="btn" id="btn-paste"  disabled onclick="pasteToSelected()">貼上</button>
+  <div class="toolbar-sep"></div>
+
+  <!-- Undo / Redo -->
+  <button class="btn" id="btn-undo" disabled onclick="undoRedo.undo()">↩ 復原</button>
+  <button class="btn" id="btn-redo" disabled onclick="undoRedo.redo()">↪ 重做</button>
+  <div class="toolbar-sep"></div>
+
   <button class="btn" onclick="clearLog()">清理視窗</button>
+</div>
+
+<!-- Feature description bar -->
+<div class="feature-bar">
+  <div class="feature-item">
+    <span class="feature-label">排序</span>
+    <span class="feature-desc">可按 名稱、大小、副檔名 進行升冪或降冪排序</span>
+  </div>
+  <div class="feature-item">
+    <span class="feature-label">編輯</span>
+    <span class="feature-desc">對節點進行 刪除（Soft-Delete）或 複製／貼上</span>
+  </div>
+  <div class="feature-item">
+    <span class="feature-label">標籤</span>
+    <span class="feature-desc">貼上多重標籤：
+      <span class="feature-tag-badge" style="background:#f85149">Urgent</span>
+      <span class="feature-tag-badge" style="background:#58a6ff">Work</span>
+      <span class="feature-tag-badge" style="background:#3fb950">Personal</span>
+    </span>
+  </div>
+  <div class="feature-item">
+    <span class="feature-label">Undo / Redo</span>
+    <span class="feature-desc">↩ 復原 / ↪ 重做 — 基於 Command Pattern 的操作歷史管理</span>
+  </div>
 </div>
 
 <div class="main">
@@ -296,13 +528,34 @@
 </div>
 
 <script>
-  // ---- Logging ----
+  // ================================================================
+  // State
+  // ================================================================
+  let selectedNodeId   = null;
+  let selectedRow      = null;
+  let selectedNode     = null;
+  let clipboard        = null;   // { mode:'copy'|'cut', nodeId, nodeName, originalParentId }
+  let currentSortBy    = null;
+  let currentSortOrder = 'asc';
+
+  const nodeRowMap    = new Map(); // nodeId → row element
+  const nodeDataMap   = new Map(); // nodeId → node data
+  const nodeParentMap = new Map(); // nodeId → parentId (null = root)
+
+  // ================================================================
+  // Loading overlay
+  // ================================================================
+  function showLoading() { document.getElementById('loading-overlay').classList.remove('hidden'); }
+  function hideLoading() { document.getElementById('loading-overlay').classList.add('hidden'); }
+
+  // ================================================================
+  // Logging
+  // ================================================================
   function log(msg, level = 'info') {
     const container = document.getElementById('log-container');
     const entry = document.createElement('div');
     entry.className = 'log-entry';
-    const now = new Date();
-    const time = now.toTimeString().slice(0, 8);
+    const time = new Date().toTimeString().slice(0, 8);
     entry.innerHTML =
       `<span class="log-time">${time}</span>` +
       `<span class="log-msg ${level}">${escHtml(msg)}</span>`;
@@ -312,45 +565,20 @@
 
   function escHtml(str) {
     return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  // ---- Detail pane ----
-  function showDetail(node) {
-    const pane = document.getElementById('detail-pane');
-    const rows = [
-      ['ID', node.id],
-      ['Name', node.name],
-      ['Type', node.typeCode],
-      ['Created', new Date(node.createdAt).toLocaleString()],
-      ['Updated', new Date(node.updatedAt).toLocaleString()],
-    ];
+  function clearLog() {
+    document.getElementById('log-container').innerHTML = '';
+  }
 
-    if (!node.isDirectory) {
-      rows.push(['Size', node.sizeFormatted ?? '—']);
-      rows.push(['Path', node.storagePath ?? '—']);
-    }
-    if (node.typeCode === 'Image') {
-      rows.push(['Dimensions', `${node.widthPx} x ${node.heightPx} px`]);
-    }
-    if (node.typeCode === 'Text') {
-      rows.push(['Encoding', node.encoding ?? '—']);
-    }
-    if (node.typeCode === 'Word') {
-      rows.push(['Pages', node.pageCount ?? '—']);
-    }
-    if (node.tags && node.tags.length > 0) {
-      rows.push(['Tags', node.tags.map(t => t.name).join(', ')]);
-    }
-
-    pane.innerHTML = '<table>' +
-      rows.map(([k, v]) =>
-        `<tr><td>${escHtml(k)}</td><td>${escHtml(String(v ?? '—'))}</td></tr>`
-      ).join('') +
-      '</table>';
+  function logSep() {
+    const container = document.getElementById('log-container');
+    if (!container.lastChild) return;
+    const sep = document.createElement('div');
+    sep.style.cssText = 'height:8px';
+    container.appendChild(sep);
   }
 
   function formatBytes(bytes) {
@@ -360,17 +588,348 @@
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
-  function clearHighlights() {
-    nodeRowMap.forEach(row => row.classList.remove('highlight'));
+  // ================================================================
+  // apiFetch — thin wrapper; throws on non-2xx
+  // ================================================================
+  async function apiFetch(url, options = {}) {
+    const res = await fetch(url, {
+      headers: { 'Content-Type': 'application/json', ...(options.headers ?? {}) },
+      ...options
+    });
+    if (!res.ok) {
+      let msg = `HTTP ${res.status}`;
+      try { const t = await res.text(); if (t) msg += `: ${t}`; } catch { /* ignore */ }
+      throw new Error(msg);
+    }
+    return res;
   }
 
-  // ---- Selected node tracking ----
-  let selectedNodeId = null;
-  let selectedRow = null;
-  const nodeRowMap = new Map(); // nodeId → row element
+  // ================================================================
+  // Button state management
+  // ================================================================
+  function updateButtonStates() {
+    const hasSelection = selectedNodeId !== null;
+    document.getElementById('btn-delete').disabled = !hasSelection;
+    document.getElementById('btn-copy').disabled   = !hasSelection;
+    document.getElementById('btn-paste').disabled  = clipboard === null;
+    document.getElementById('btn-undo').disabled   = !undoRedo.canUndo();
+    document.getElementById('btn-redo').disabled   = !undoRedo.canRedo();
+  }
 
-  // ---- Tree rendering ----
+  // ================================================================
+  // UndoRedoManager
+  // ================================================================
+  class UndoRedoManager {
+    #undoStack = [];
+    #redoStack = [];
 
+    async execute(cmd) {
+      showLoading();
+      try {
+        await cmd.execute();
+        this.#undoStack.push(cmd);
+        this.#redoStack = [];
+      } finally {
+        hideLoading();
+        updateButtonStates();
+      }
+    }
+
+    async undo() {
+      if (!this.canUndo()) return;
+      const cmd = this.#undoStack.pop();
+      logSep();
+      showLoading();
+      try {
+        await cmd.undo();
+        this.#redoStack.push(cmd);
+      } finally {
+        hideLoading();
+        updateButtonStates();
+      }
+    }
+
+    async redo() {
+      if (!this.canRedo()) return;
+      const cmd = this.#redoStack.pop();
+      logSep();
+      showLoading();
+      try {
+        await cmd.execute();
+        this.#undoStack.push(cmd);
+      } finally {
+        hideLoading();
+        updateButtonStates();
+      }
+    }
+
+    canUndo() { return this.#undoStack.length > 0; }
+    canRedo() { return this.#redoStack.length > 0; }
+  }
+
+  const undoRedo = new UndoRedoManager();
+
+  // ================================================================
+  // Commands
+  // ================================================================
+  class DeleteCommand {
+    constructor(nodeId, nodeName) { this.nodeId = nodeId; this.nodeName = nodeName; }
+
+    async execute() {
+      await apiFetch(`/api/nodes/${this.nodeId}`, { method: 'DELETE' });
+      log(`刪除：${this.nodeName}`, 'warn');
+      await reloadTree();
+    }
+
+    async undo() {
+      await apiFetch(`/api/nodes/${this.nodeId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ isDeleted: false })
+      });
+      log(`還原：${this.nodeName}`, 'info');
+      await reloadTree();
+    }
+  }
+
+  class CopyCommand {
+    constructor(sourceNodeId, sourceNodeName, targetParentId) {
+      this.sourceNodeId   = sourceNodeId;
+      this.sourceNodeName = sourceNodeName;
+      this.targetParentId = targetParentId;
+      this.newNodeId      = null;
+      this._hasCreated    = false;
+    }
+
+    async execute() {
+      if (!this._hasCreated || this.newNodeId === null) {
+        // First time: create a new copy via POST
+        const res  = await apiFetch(`/api/nodes/${this.sourceNodeId}/copies`, {
+          method: 'POST',
+          body: JSON.stringify({ targetParentId: this.targetParentId })
+        });
+        const data   = await res.json();
+        this.newNodeId   = data.newNodeId;
+        this._hasCreated = true;
+      } else {
+        // Redo: restore the same copy node (preserves ID so subsequent commands stay in sync)
+        await apiFetch(`/api/nodes/${this.newNodeId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ isDeleted: false })
+        });
+      }
+      log(`複製：${this.sourceNodeName} → 節點 #${this.newNodeId}`, 'info');
+      await reloadTree();
+    }
+
+    async undo() {
+      if (this.newNodeId === null) return;
+      await apiFetch(`/api/nodes/${this.newNodeId}`, { method: 'DELETE' });
+      log(`撤銷複製：#${this.newNodeId}`, 'warn');
+      await reloadTree();
+    }
+  }
+
+  // ================================================================
+  // Local tag patch — updates in-memory state + row chips + detail pane
+  // without refetching the whole tree
+  // ================================================================
+  function patchNodeTags(nodeId, newTags) {
+    const node = nodeDataMap.get(nodeId);
+    if (!node) return;
+    node.tags = newTags;
+    if (selectedNode && selectedNode.id === nodeId) selectedNode.tags = newTags;
+
+    // Refresh tag chips on the tree row
+    const row = nodeRowMap.get(nodeId);
+    if (row) {
+      const existing = row.querySelector('.tags');
+      if (existing) existing.remove();
+      if (newTags.length > 0) {
+        const tagsEl = document.createElement('span');
+        tagsEl.className = 'tags';
+        for (const tag of newTags) {
+          const chip = document.createElement('span');
+          chip.className = 'tag-chip';
+          chip.style.background = tag.color;
+          chip.textContent = tag.name;
+          tagsEl.appendChild(chip);
+        }
+        row.appendChild(tagsEl);
+      }
+    }
+
+    // Refresh detail pane if this node is currently selected
+    if (selectedNode && selectedNode.id === nodeId) showDetail(selectedNode);
+  }
+
+  class AddTagCommand {
+    constructor(nodeId, nodeName, tagId, tagName, tagColor) {
+      this.nodeId    = nodeId;
+      this.nodeName  = nodeName;
+      this.tagId     = tagId;
+      this.tagName   = tagName;
+      this.tagColor  = tagColor;
+    }
+
+    async execute() {
+      await apiFetch(`/api/nodes/${this.nodeId}/tags`, {
+        method: 'POST',
+        body: JSON.stringify({ tagId: this.tagId })
+      });
+      const node = nodeDataMap.get(this.nodeId);
+      const newTags = [...(node?.tags ?? []), { id: this.tagId, name: this.tagName, color: this.tagColor }];
+      patchNodeTags(this.nodeId, newTags);
+      log(`新增標籤「${this.tagName}」至 ${this.nodeName}`, 'info');
+    }
+
+    async undo() {
+      await apiFetch(`/api/nodes/${this.nodeId}/tags/${this.tagId}`, { method: 'DELETE' });
+      const node = nodeDataMap.get(this.nodeId);
+      const newTags = (node?.tags ?? []).filter(t => t.id !== this.tagId);
+      patchNodeTags(this.nodeId, newTags);
+      log(`移除標籤「${this.tagName}」從 ${this.nodeName}`, 'warn');
+    }
+  }
+
+  class RemoveTagCommand {
+    constructor(nodeId, nodeName, tagId, tagName, tagColor) {
+      this.nodeId    = nodeId;
+      this.nodeName  = nodeName;
+      this.tagId     = tagId;
+      this.tagName   = tagName;
+      this.tagColor  = tagColor;
+    }
+
+    async execute() {
+      await apiFetch(`/api/nodes/${this.nodeId}/tags/${this.tagId}`, { method: 'DELETE' });
+      const node = nodeDataMap.get(this.nodeId);
+      const newTags = (node?.tags ?? []).filter(t => t.id !== this.tagId);
+      patchNodeTags(this.nodeId, newTags);
+      log(`移除標籤「${this.tagName}」從 ${this.nodeName}`, 'warn');
+    }
+
+    async undo() {
+      await apiFetch(`/api/nodes/${this.nodeId}/tags`, {
+        method: 'POST',
+        body: JSON.stringify({ tagId: this.tagId })
+      });
+      const node = nodeDataMap.get(this.nodeId);
+      const newTags = [...(node?.tags ?? []), { id: this.tagId, name: this.tagName, color: this.tagColor }];
+      patchNodeTags(this.nodeId, newTags);
+      log(`還原標籤「${this.tagName}」至 ${this.nodeName}`, 'info');
+    }
+  }
+
+  // ================================================================
+  // Detail pane with tag management
+  // ================================================================
+  async function showDetail(node) {
+    selectedNode = node;
+    const pane = document.getElementById('detail-pane');
+
+    // ── Tag bar (top) ──────────────────────────────────────────────
+    let tagsHtml = '<div class="detail-tags-bar">';
+    tagsHtml += '<span class="detail-tags-bar-label">Tags</span>';
+    for (const tag of (node.tags ?? [])) {
+      tagsHtml +=
+        `<span class="tag-chip" style="background:${escHtml(tag.color)}">` +
+        escHtml(tag.name) +
+        `<button class="tag-remove-btn" title="移除標籤" ` +
+        `onclick="removeTag(${node.id},${tag.id},'${escHtml(tag.name)}','${escHtml(tag.color)}')">×</button>` +
+        `</span>`;
+    }
+    // ＋ open button + hidden inline select (toggled by toggleTagAdd)
+    tagsHtml += `<button class="btn-tag-open" id="btn-tag-open" onclick="toggleTagAdd()" title="新增標籤">＋ 標籤</button>`;
+    tagsHtml += `<span class="tag-add-inline" id="tag-add-inline">`;
+    tagsHtml += `<select id="tag-select" class="detail-select"><option value="">— 選擇 —</option></select>`;
+    tagsHtml += `<button class="btn btn-add-tag" onclick="addSelectedTag()">確認</button>`;
+    tagsHtml += `<button class="btn" onclick="toggleTagAdd()">✕</button>`;
+    tagsHtml += `</span>`;
+    tagsHtml += '</div>';
+
+    // ── Properties table ───────────────────────────────────────────
+    const rows = [
+      ['ID',      node.id],
+      ['Name',    node.name],
+      ['Type',    node.typeCode],
+      ['Created', new Date(node.createdAt).toLocaleString()],
+      ['Updated', new Date(node.updatedAt).toLocaleString()],
+    ];
+    if (!node.isDirectory) {
+      rows.push(['Size', node.sizeFormatted ?? '—']);
+      rows.push(['Path', node.storagePath ?? '—']);
+    }
+    if (node.typeCode === 'Image')  rows.push(['Dimensions', `${node.widthPx} x ${node.heightPx} px`]);
+    if (node.typeCode === 'Text')   rows.push(['Encoding',   node.encoding  ?? '—']);
+    if (node.typeCode === 'Word')   rows.push(['Pages',      node.pageCount ?? '—']);
+
+    const tableHtml = '<table>' +
+      rows.map(([k, v]) =>
+        `<tr><td>${escHtml(k)}</td><td>${escHtml(String(v ?? '—'))}</td></tr>`
+      ).join('') +
+      '</table>';
+
+    pane.innerHTML = tagsHtml + tableHtml;
+
+    // Populate tag select with tags not yet on this node
+    try {
+      const res     = await apiFetch('/api/tags');
+      const allTags = await res.json();
+      const existing = new Set((node.tags ?? []).map(t => t.id));
+      const select   = document.getElementById('tag-select');
+      if (select) {
+        for (const tag of allTags) {
+          if (!existing.has(tag.id)) {
+            const opt = document.createElement('option');
+            opt.value         = tag.id;
+            opt.textContent   = tag.name;
+            opt.dataset.color = tag.color;
+            select.appendChild(opt);
+          }
+        }
+      }
+    } catch (err) {
+      log(`載入標籤清單失敗：${err.message}`, 'error');
+    }
+  }
+
+  function toggleTagAdd() {
+    const inline = document.getElementById('tag-add-inline');
+    const btn    = document.getElementById('btn-tag-open');
+    if (!inline) return;
+    const isOpen = inline.classList.toggle('open');
+    btn.classList.toggle('active', isOpen);
+    if (isOpen) document.getElementById('tag-select')?.focus();
+  }
+
+  async function removeTag(nodeId, tagId, tagName, tagColor) {
+    if (!selectedNode) return;
+    logSep();
+    try {
+      await undoRedo.execute(new RemoveTagCommand(nodeId, selectedNode.name, tagId, tagName, tagColor));
+    } catch (err) {
+      log(`移除標籤失敗：${err.message}`, 'error');
+    }
+  }
+
+  async function addSelectedTag() {
+    const select = document.getElementById('tag-select');
+    if (!select || !select.value || !selectedNode) return;
+    const tagId    = parseInt(select.value, 10);
+    const opt      = select.options[select.selectedIndex];
+    const tagName  = opt.textContent;
+    const tagColor = opt.dataset.color ?? '#888888';
+    logSep();
+    try {
+      await undoRedo.execute(new AddTagCommand(selectedNode.id, selectedNode.name, tagId, tagName, tagColor));
+    } catch (err) {
+      log(`新增標籤失敗：${err.message}`, 'error');
+    }
+  }
+
+  // ================================================================
+  // Tree helpers
+  // ================================================================
   function countNodes(nodes) {
     let count = 0;
     for (const node of nodes) {
@@ -380,10 +939,17 @@
     return count;
   }
 
-  function renderTree(nodes, depth = 0) {
+  function clearHighlights() {
+    nodeRowMap.forEach(row => row.classList.remove('highlight'));
+  }
+
+  function renderTree(nodes, depth = 0, parentId = null) {
     const fragment = document.createDocumentFragment();
 
     for (const node of nodes) {
+      nodeParentMap.set(node.id, parentId);
+      nodeDataMap.set(node.id, node);
+
       const wrapper = document.createElement('div');
       wrapper.className = 'tree-node';
 
@@ -391,35 +957,30 @@
       row.className = 'tree-row';
       row.style.paddingLeft = (8 + depth * 18) + 'px';
 
-      // Toggle arrow (directories only)
+      // Toggle arrow
       const toggle = document.createElement('span');
       toggle.className = 'toggle';
-      if (node.isDirectory && node.children && node.children.length > 0) {
+      if (node.isDirectory && node.children && node.children.length > 0)
         toggle.textContent = '▼';
-      }
       row.appendChild(toggle);
 
       // Name
-      const name = document.createElement('span');
-      name.className = 'node-name' + (node.isDirectory ? ' dir' : '');
+      const nameEl = document.createElement('span');
+      nameEl.className = 'node-name' + (node.isDirectory ? ' dir' : '');
       const ext = (!node.isDirectory && node.storagePath)
         ? node.storagePath.substring(node.storagePath.lastIndexOf('.'))
         : '';
-      name.textContent = node.name + ext;
-      row.appendChild(name);
+      nameEl.textContent = node.name + ext;
+      row.appendChild(nameEl);
 
-      // Type-specific metadata
+      // Type-specific metadata (one line)
       let metaText = '';
-      if (node.typeCode === 'Word' && node.pageCount != null) {
-        metaText = `${node.sizeFormatted}, ${node.pageCount} 頁`;
-      } else if (node.typeCode === 'Image' && node.widthPx != null) {
-        metaText = `${node.sizeFormatted}, ${node.widthPx}×${node.heightPx}`;
-      } else if (node.typeCode === 'Text' && node.encoding) {
-        metaText = `${node.sizeFormatted}, ${node.encoding}`;
-      }
+      if (node.typeCode === 'Word'  && node.pageCount != null) metaText = `${node.sizeFormatted}, ${node.pageCount} 頁`;
+      else if (node.typeCode === 'Image' && node.widthPx != null)  metaText = `${node.sizeFormatted}, ${node.widthPx}×${node.heightPx}`;
+      else if (node.typeCode === 'Text'  && node.encoding)         metaText = `${node.sizeFormatted}, ${node.encoding}`;
       if (metaText) {
         const meta = document.createElement('span');
-        meta.className = 'node-meta';
+        meta.className  = 'node-meta';
         meta.textContent = metaText;
         row.appendChild(meta);
       }
@@ -445,23 +1006,24 @@
       if (node.isDirectory && node.children && node.children.length > 0) {
         childrenEl = document.createElement('div');
         childrenEl.className = 'children';
-        childrenEl.appendChild(renderTree(node.children, depth + 1));
+        childrenEl.appendChild(renderTree(node.children, depth + 1, node.id));
         wrapper.appendChild(childrenEl);
       }
 
-      // Register row in map for highlight lookup
       nodeRowMap.set(node.id, row);
 
       // Click: select + toggle + detail
-      row.addEventListener('click', () => {
-        // Update selected state
+      row.addEventListener('click', async () => {
         if (selectedRow) selectedRow.classList.remove('selected');
         selectedNodeId = node.id;
-        selectedRow = row;
+        selectedRow    = row;
         row.classList.add('selected');
 
-        showDetail(node);
-        log(`Selected: ${node.name} (${node.typeCode})`, 'info');
+        logSep();
+        log(`選取：${node.name} (${node.typeCode})`, 'info');
+        await showDetail(node);
+        updateButtonStates();
+
         if (childrenEl) {
           const collapsed = childrenEl.classList.toggle('hidden');
           toggle.textContent = collapsed ? '▶' : '▼';
@@ -474,43 +1036,120 @@
     return fragment;
   }
 
-  // ---- Fetch ----
+  // ================================================================
+  // loadTree / reloadTree
+  // ================================================================
   async function loadTree() {
-    log('Fetching /api/file-tree...', 'info');
+    showLoading();
     const container = document.getElementById('tree-container');
+    nodeRowMap.clear();
+    nodeDataMap.clear();
+    nodeParentMap.clear();
 
     try {
-      const response = await fetch('/api/file-tree');
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`HTTP ${response.status}: ${text}`);
-      }
+      let url = '/api/nodes';
+      if (currentSortBy) url += `?sortBy=${encodeURIComponent(currentSortBy)}&order=${encodeURIComponent(currentSortOrder)}`;
 
-      const data = await response.json();
+      const res  = await apiFetch(url);
+      const data = await res.json();
       const total = countNodes(data);
 
       container.innerHTML = '';
       container.appendChild(renderTree(data));
 
-      log(`Loaded successfully. Total nodes: ${total}`, 'info');
+      log(`已載入，共 ${total} 個節點${currentSortBy ? `（排序：${currentSortBy} ${currentSortOrder}）` : ''}`, 'info');
       document.getElementById('status-dot').style.background = '#3fb950';
     } catch (err) {
       container.innerHTML = '<div class="loading-placeholder" style="color:#f85149">Failed to load tree.</div>';
-      log(`Error: ${err.message}`, 'error');
+      log(`載入失敗：${err.message}`, 'error');
       document.getElementById('status-dot').style.background = '#f85149';
+    } finally {
+      hideLoading();
     }
   }
 
-  // ---- Toolbar actions ----
-  async function calcSize() {
-    const url = selectedNodeId
-      ? `/api/file-tree/calculate-size?nodeId=${selectedNodeId}`
-      : '/api/file-tree/calculate-size';
-    const scope = selectedNodeId ? `節點 #${selectedNodeId}` : '全樹';
-    log(`計算總容量（${scope}）中...`, 'info');
+  async function reloadTree() {
+    const prevId = selectedNodeId;
+    selectedNodeId = null;
+    selectedRow    = null;
+    selectedNode   = null;
+
+    await loadTree();
+
+    if (prevId !== null && nodeRowMap.has(prevId)) {
+      const row  = nodeRowMap.get(prevId);
+      row.classList.add('selected');
+      selectedNodeId = prevId;
+      selectedRow    = row;
+      const nodeData = nodeDataMap.get(prevId);
+      if (nodeData) await showDetail(nodeData);
+    }
+
+    updateButtonStates();
+  }
+
+  // ================================================================
+  // Sort
+  // ================================================================
+  function applySort() {
+    currentSortBy    = document.getElementById('sort-by').value || null;
+    currentSortOrder = document.getElementById('sort-order').value;
+    logSep();
+    loadTree();
+  }
+
+  // ================================================================
+  // Edit toolbar actions
+  // ================================================================
+  async function deleteSelected() {
+    if (!selectedNodeId || !selectedNode) return;
+    logSep();
     try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      await undoRedo.execute(new DeleteCommand(selectedNodeId, selectedNode.name));
+    } catch (err) {
+      log(`刪除失敗：${err.message}`, 'error');
+    }
+  }
+
+  function copySelected() {
+    if (!selectedNodeId || !selectedNode) return;
+    clipboard = { mode: 'copy', nodeId: selectedNodeId, nodeName: selectedNode.name };
+    logSep();
+    log(`複製至剪貼簿：${selectedNode.name}`, 'info');
+    updateButtonStates();
+  }
+
+  async function pasteToSelected() {
+    if (!clipboard) return;
+    // Resolve paste target: selected directory, or parent of selected file, or root
+    let targetParentId = null;
+    if (selectedNodeId) {
+      targetParentId = (selectedNode && selectedNode.isDirectory)
+        ? selectedNodeId
+        : (nodeParentMap.get(selectedNodeId) ?? null);
+    }
+
+    const cb = clipboard;
+    clipboard = null;
+    updateButtonStates();
+
+    logSep();
+    try {
+      await undoRedo.execute(new CopyCommand(cb.nodeId, cb.nodeName, targetParentId));
+    } catch (err) {
+      log(`貼上失敗：${err.message}`, 'error');
+    }
+  }
+
+  // ================================================================
+  // Original toolbar actions
+  // ================================================================
+  async function calcSize() {
+    const url   = selectedNodeId ? `/api/nodes/size?nodeId=${selectedNodeId}` : '/api/nodes/size';
+    const scope = selectedNodeId ? `節點 #${selectedNodeId}` : '全樹';
+    logSep();
+    try {
+      const res  = await apiFetch(url);
       const data = await res.json();
       data.traversalLog.forEach(line => log(line, 'info'));
       log(`${scope} 總容量：${formatBytes(data.totalBytes)}`, 'info');
@@ -522,24 +1161,18 @@
   async function searchExt() {
     const ext = document.getElementById('ext-input').value.trim();
     if (!ext) { log('請輸入副檔名', 'warn'); return; }
-    log(`搜尋副檔名 ${ext} 中...`, 'info');
+    logSep();
     try {
-      const res = await fetch(`/api/file-tree/search-ext?ext=${encodeURIComponent(ext)}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const res  = await apiFetch(`/api/nodes?ext=${encodeURIComponent(ext)}`);
       const data = await res.json();
       data.traversalLog.forEach(line => log(line, 'info'));
       if (data.results.length === 0) {
         log(`找不到 ${ext} 的檔案`, 'warn');
       } else {
-        log(`找到 ${data.results.length} 個 ${ext} 檔案：`, 'info');
+        log(`找到 ${data.results.length} 個 ${ext} 檔案：${data.results.map(n => n.storagePath).join('、')}`, 'info');
         data.results.forEach(n => {
-          log(`  → ${n.storagePath}`, 'info');
           const row = nodeRowMap.get(n.id);
-          if (row) {
-            row.classList.remove('highlight');
-            void row.offsetWidth;
-            row.classList.add('highlight');
-          }
+          if (row) { row.classList.remove('highlight'); void row.offsetWidth; row.classList.add('highlight'); }
         });
       }
     } catch (err) {
@@ -547,22 +1180,15 @@
     }
   }
 
-  function clearLog() {
-    document.getElementById('log-panel').innerHTML = '';
-  }
-
   async function exportXml() {
-    log('產生 XML 結構中...', 'info');
+    logSep();
     try {
-      const res = await fetch('/api/file-tree/xml');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const res = await apiFetch('/api/nodes/export');
       const xml = await res.text();
       const blob = new Blob([xml], { type: 'text/xml;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'file-tree.xml';
-      a.click();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = 'file-tree.xml'; a.click();
       URL.revokeObjectURL(url);
       log('XML 已下載：file-tree.xml', 'info');
     } catch (err) {
@@ -570,8 +1196,11 @@
     }
   }
 
+  // ================================================================
+  // Init
+  // ================================================================
   document.getElementById('ext-input').addEventListener('input', clearHighlights);
-
+  updateButtonStates();
   loadTree();
 </script>
 </body>
