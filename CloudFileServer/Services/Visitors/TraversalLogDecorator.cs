@@ -11,9 +11,11 @@ public class TraversalLogDecorator : INodeVisitor
 
     public IReadOnlyList<string> Log => _log;
 
-    public TraversalLogDecorator(INodeVisitor inner)
+    public TraversalLogDecorator(INodeVisitor inner, IEnumerable<string>? ancestorPath = null)
     {
         _inner = inner;
+        if (ancestorPath is not null)
+            _pathStack.AddRange(ancestorPath);
     }
 
     public void EnterDirectory(DirectoryTreeItem directory)

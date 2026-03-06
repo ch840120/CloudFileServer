@@ -677,6 +677,7 @@
 
     async execute() {
       await apiFetch(`/api/nodes/${this.nodeId}`, { method: 'DELETE' });
+      if (clipboard?.nodeId === this.nodeId) clipboard = null;
       log(`刪除：${this.nodeName}`, 'warn');
       await reloadTree();
     }
@@ -724,6 +725,7 @@
     async undo() {
       if (this.newNodeId === null) return;
       await apiFetch(`/api/nodes/${this.newNodeId}`, { method: 'DELETE' });
+      if (clipboard?.nodeId === this.newNodeId) clipboard = null;
       log(`撤銷複製：#${this.newNodeId}`, 'warn');
       await reloadTree();
     }

@@ -85,8 +85,12 @@ public class FileTreeController : ControllerBase
         var target = nodeId.HasValue ? FindNodeById(tree, nodeId.Value) : null;
         IEnumerable<NodeTreeItem> roots = target is not null ? [target] : tree;
 
+        var ancestorPath = nodeId.HasValue && target is not null
+            ? FindAncestorPath(tree, nodeId.Value) ?? []
+            : [];
+
         var inner   = new CalculateSizeVisitor();
-        var visitor = new TraversalLogDecorator(inner);
+        var visitor = new TraversalLogDecorator(inner, ancestorPath);
         foreach (var root in roots) root.Accept(visitor);
         return Ok(new { totalBytes = inner.TotalBytes, traversalLog = visitor.Log });
     }
@@ -110,6 +114,29 @@ public class FileTreeController : ControllerBase
             {
                 var found = FindNodeById(dir.Children, id);
                 if (found is not null) return found;
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// 從樹根向下找 targetId，回傳祖先名稱清單（不含目標節點本身）。
+    /// 找不到回傳 null。
+    /// </summary>
+    private static IReadOnlyList<string>? FindAncestorPath(IReadOnlyList<NodeTreeItem> nodes, long targetId)
+    {
+        foreach (var node in nodes)
+        {
+            if (node.Id == targetId) return [];
+            if (node is DirectoryTreeItem dir)
+            {
+                var inner = FindAncestorPath(dir.Children, targetId);
+                if (inner is not null)
+                {
+                    var path = new List<string>(inner.Count + 1) { dir.Name };
+                    path.AddRange(inner);
+                    return path;
+                }
             }
         }
         return null;

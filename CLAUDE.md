@@ -16,16 +16,94 @@
 ## 一、專案結構總覽
 
 ```
-CloudFileServer/                         # 方案根資料夾 (Solution)
-├── CloudFileServer.Domain/              # 領域層：介面 & 模型
-├── CloudFileServer.Persistent/          # 持久層：EF Core SQL 實作
-├── CloudFileServer/                     # 主專案：Web API + 靜態頁面
+CloudFileServer/                              # 方案根資料夾 (Solution)
+├── CloudFileServer.Domain/                   # 領域層：介面 & 模型
+│   ├── Interfaces/
+│   │   ├── IFileStorageService.cs
+│   │   ├── INodeEditRepository.cs
+│   │   ├── INodeTreeRepository.cs
+│   │   ├── INodeVisitor.cs
+│   │   └── ITagRepository.cs
+│   └── Models/
+│       ├── Dtos/
+│       │   ├── AddTagRequest.cs
+│       │   ├── CopyNodeRequest.cs
+│       │   ├── NodeOperationResponse.cs
+│       │   ├── NodeTreeItemDto.cs
+│       │   ├── PatchNodeRequest.cs
+│       │   └── TagDto.cs
+│       ├── Entities/
+│       │   ├── Node.cs
+│       │   ├── NodeImageMeta.cs
+│       │   ├── NodeTag.cs
+│       │   ├── NodeTextMeta.cs
+│       │   ├── NodeType.cs
+│       │   ├── NodeTypeCode.cs
+│       │   └── NodeWordMeta.cs
+│       └── TreeItems/
+│           ├── DirectoryTreeItem.cs
+│           ├── FileTreeItem.cs            # 抽象：檔案類型基底
+│           ├── ImageFileTreeItem.cs
+│           ├── NodeTreeItem.cs            # 抽象：所有節點基底
+│           ├── TextFileTreeItem.cs
+│           └── WordFileTreeItem.cs
+├── CloudFileServer.Persistent/               # 持久層：EF Core SQL 實作
+│   ├── AppDbContext.cs
+│   ├── PersistentServiceExtensions.cs
+│   ├── Configurations/
+│   │   ├── NodeConfiguration.cs
+│   │   ├── NodeImageMetaConfiguration.cs
+│   │   ├── NodeTagConfiguration.cs
+│   │   ├── NodeTextMetaConfiguration.cs
+│   │   ├── NodeTypeConfiguration.cs
+│   │   ├── NodeWordMetaConfiguration.cs
+│   │   └── TagConfiguration.cs
+│   ├── Migrations/                           # EF Core 自動管理，勿手改
+│   ├── Repository/
+│   │   ├── NodeEditRepository.cs
+│   │   ├── NodeTreeRepository.cs
+│   │   └── TagRepository.cs
+│   └── Services/
+│       └── MockFileStorageService.cs
+├── CloudFileServer/                          # 主專案：Web API + 靜態頁面
+│   ├── Program.cs
+│   ├── appsettings.json                      # 基礎設定（所有環境）
+│   ├── appsettings.Development.json          # 開發環境覆蓋設定（不提交 Git）
 │   ├── Applibs/
-│   │   └── ConfigHelper.cs             # 強型別設定讀取輔助類別
-│   ├── appsettings.json                 # 基礎設定（所有環境）
-│   ├── appsettings.Development.json     # 開發環境覆蓋設定（不提交 Git）
-│   └── wwwroot/                         # 靜態前端資源
-└── CloudFileServer.Tests/              # 單元測試：Moq
+│   │   ├── AppCacheKeys.cs
+│   │   └── ConfigHelper.cs                  # 強型別設定讀取輔助類別
+│   ├── Controllers/
+│   │   ├── FileTreeController.cs             # GET /api/nodes (tree/search/size/export)
+│   │   ├── NodesController.cs                # DELETE/PATCH/POST /api/nodes/{id}/...
+│   │   └── TagsController.cs                 # GET /api/tags、節點標籤管理
+│   ├── Services/
+│   │   ├── Sorting/                          # Strategy Pattern：排序策略
+│   │   │   ├── ISortStrategy.cs
+│   │   │   ├── ExtensionSortStrategy.cs
+│   │   │   ├── NameSortStrategy.cs
+│   │   │   ├── SizeSortStrategy.cs
+│   │   │   └── TreeSortContext.cs
+│   │   └── Visitors/                         # Visitor Pattern：訪問者
+│   │       ├── CalculateSizeVisitor.cs
+│   │       ├── ExtensionSearchVisitor.cs
+│   │       ├── SearchVisitor.cs
+│   │       ├── TraversalLogDecorator.cs      # Decorator：包裝任意 Visitor 加 Log
+│   │       └── XmlSerializationVisitor.cs
+│   └── wwwroot/
+│       └── index.html                        # 靜態前端（含內嵌 JS）
+└── CloudFileServer.Tests/                    # 單元測試：xUnit + Moq
+    ├── Controllers/
+    │   ├── FileTreeControllerTests.cs
+    │   ├── NodesControllerTests.cs
+    │   └── TagsControllerTests.cs
+    └── Services/
+        ├── Sorting/
+        │   └── TreeSortContextTests.cs
+        └── Visitors/
+            ├── CalculateSizeVisitorTests.cs
+            ├── ExtensionSearchVisitorTests.cs
+            ├── SearchVisitorTests.cs
+            └── TraversalLogDecoratorTests.cs
 ```
 
 ---

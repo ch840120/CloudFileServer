@@ -24,7 +24,7 @@ public class MockFileStorageService : IFileStorageService
         if (!string.IsNullOrEmpty(destDir) && !Directory.Exists(destDir))
             Directory.CreateDirectory(destDir);
 
-        File.Copy(fullSource, fullDest, overwrite: false);
+        File.Copy(fullSource, fullDest, overwrite: true);
     }
 
     public void DeleteFile(string filePath)
