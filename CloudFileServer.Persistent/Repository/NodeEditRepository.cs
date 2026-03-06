@@ -37,16 +37,6 @@ public class NodeEditRepository : INodeEditRepository
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task MoveAsync(long nodeId, long? newParentId, CancellationToken cancellationToken = default)
-    {
-        var node = await _dbContext.Nodes.FindAsync(new object[] { nodeId }, cancellationToken)
-            ?? throw new InvalidOperationException($"Node {nodeId} not found.");
-
-        node.ParentId = newParentId;
-        node.UpdatedAt = DateTime.UtcNow;
-        await _dbContext.SaveChangesAsync(cancellationToken);
-    }
-
     public async Task<CopyResult> CopySubtreeAsync(
         long sourceNodeId,
         long? targetParentId,
