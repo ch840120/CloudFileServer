@@ -2,7 +2,9 @@ using CloudFileServer.Domain.Interfaces;
 using CloudFileServer.Domain.Models;
 using CloudFileServer.Domain.Models.Dtos;
 using CloudFileServer.Domain.Models.TreeItems;
+using CloudFileServer.Services.Visitors;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace CloudFileServer.Controllers;
 
@@ -10,20 +12,100 @@ namespace CloudFileServer.Controllers;
 [Route("api/file-tree")]
 public class FileTreeController : ControllerBase
 {
-    private readonly INodeTreeRepository _nodeTreeRepository;
+    private const string CacheKey = "file-tree";
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
 
-    public FileTreeController(INodeTreeRepository nodeTreeRepository)
+    private readonly INodeTreeRepository _nodeTreeRepository;
+    private readonly IMemoryCache _cache;
+
+    public FileTreeController(INodeTreeRepository nodeTreeRepository, IMemoryCache cache)
     {
         _nodeTreeRepository = nodeTreeRepository;
+        _cache = cache;
     }
 
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<NodeTreeItemDto>>> GetFullTree(
         CancellationToken cancellationToken)
     {
+        var tree = await GetTreeAsync(cancellationToken);
+        return Ok(tree.Select(MapToDto).ToList());
+    }
+
+    [HttpGet("calculate-size")]
+    public async Task<ActionResult<long>> CalculateSize(
+        [FromQuery] long? nodeId,
+        CancellationToken cancellationToken)
+    {
+        var tree = await GetTreeAsync(cancellationToken);
+        var target = nodeId.HasValue ? FindNodeById(tree, nodeId.Value) : null;
+        IEnumerable<NodeTreeItem> roots = target is not null ? [target] : tree;
+
+        var inner = new CalculateSizeVisitor();
+        var visitor = new TraversalLogDecorator(inner);
+        foreach (var root in roots)
+            root.Accept(visitor);
+        return Ok(new { totalBytes = inner.TotalBytes, traversalLog = visitor.Log });
+    }
+
+    [HttpGet("search")]
+    public async Task<ActionResult<IReadOnlyList<NodeTreeItemDto>>> Search(
+        [FromQuery] string q,
+        CancellationToken cancellationToken)
+    {
+        var tree = await GetTreeAsync(cancellationToken);
+        var inner = new SearchVisitor(q);
+        var visitor = new TraversalLogDecorator(inner);
+        foreach (var root in tree)
+            root.Accept(visitor);
+        return Ok(new { results = inner.Results.Select(MapToDto).ToList(), traversalLog = visitor.Log });
+    }
+
+    [HttpGet("search-ext")]
+    public async Task<ActionResult<IReadOnlyList<NodeTreeItemDto>>> SearchByExtension(
+        [FromQuery] string ext,
+        CancellationToken cancellationToken)
+    {
+        var tree = await GetTreeAsync(cancellationToken);
+        var inner = new ExtensionSearchVisitor(ext);
+        var visitor = new TraversalLogDecorator(inner);
+        foreach (var root in tree)
+            root.Accept(visitor);
+        return Ok(new { results = inner.Results.Select(MapToDto).ToList(), traversalLog = visitor.Log });
+    }
+
+    [HttpGet("xml")]
+    public async Task<ActionResult<string>> GetXml(CancellationToken cancellationToken)
+    {
+        var tree = await GetTreeAsync(cancellationToken);
+        var visitor = new XmlSerializationVisitor();
+        foreach (var root in tree)
+            root.Accept(visitor);
+        return Ok(visitor.GetXml());
+    }
+
+    private static NodeTreeItem? FindNodeById(IReadOnlyList<NodeTreeItem> nodes, long id)
+    {
+        foreach (var node in nodes)
+        {
+            if (node.Id == id) return node;
+            if (node is DirectoryTreeItem dir)
+            {
+                var found = FindNodeById(dir.Children, id);
+                if (found is not null) return found;
+            }
+        }
+        return null;
+    }
+
+    private async Task<IReadOnlyList<NodeTreeItem>> GetTreeAsync(CancellationToken cancellationToken)
+    {
+        if (_cache.TryGetValue(CacheKey, out IReadOnlyList<NodeTreeItem>? cached) && cached is not null)
+            return cached;
+
         var tree = await _nodeTreeRepository.GetFullTreeAsync(cancellationToken);
-        var dtos = tree.Select(MapToDto).ToList();
-        return Ok(dtos);
+        _cache.Set(CacheKey, tree, CacheDuration);
+        return tree;
     }
 
     private static NodeTreeItemDto MapToDto(NodeTreeItem item)
@@ -53,6 +135,7 @@ public class FileTreeController : ControllerBase
                 CreatedAt = img.CreatedAt,
                 UpdatedAt = img.UpdatedAt,
                 SizeBytes = img.SizeBytes,
+                SizeFormatted = FormatBytes(img.SizeBytes),
                 StoragePath = img.StoragePath,
                 WidthPx = img.WidthPx,
                 HeightPx = img.HeightPx
@@ -67,6 +150,7 @@ public class FileTreeController : ControllerBase
                 CreatedAt = txt.CreatedAt,
                 UpdatedAt = txt.UpdatedAt,
                 SizeBytes = txt.SizeBytes,
+                SizeFormatted = FormatBytes(txt.SizeBytes),
                 StoragePath = txt.StoragePath,
                 Encoding = txt.Encoding
             },
@@ -80,6 +164,7 @@ public class FileTreeController : ControllerBase
                 CreatedAt = wrd.CreatedAt,
                 UpdatedAt = wrd.UpdatedAt,
                 SizeBytes = wrd.SizeBytes,
+                SizeFormatted = FormatBytes(wrd.SizeBytes),
                 StoragePath = wrd.StoragePath,
                 PageCount = wrd.PageCount
             },
@@ -87,6 +172,13 @@ public class FileTreeController : ControllerBase
                 $"Unknown NodeTreeItem type: {item.GetType().Name} for Id: {item.Id}")
         };
     }
+
+    private static string FormatBytes(long bytes) => bytes switch
+    {
+        < 1024 => $"{bytes} B",
+        < 1024 * 1024 => $"{bytes / 1024.0:0.#} KB",
+        _ => $"{bytes / (1024.0 * 1024):0.#} MB"
+    };
 
     private static TagDto MapTag(Tag tag) => new()
     {

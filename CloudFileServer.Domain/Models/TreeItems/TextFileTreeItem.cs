@@ -1,3 +1,5 @@
+using CloudFileServer.Domain.Interfaces;
+
 namespace CloudFileServer.Domain.Models.TreeItems;
 
 public class TextFileTreeItem : FileTreeItem
@@ -17,4 +19,6 @@ public class TextFileTreeItem : FileTreeItem
     {
         Encoding = encoding;
     }
+
+    public override void Accept(INodeVisitor visitor) => visitor.Visit(this);
 }

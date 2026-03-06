@@ -1,3 +1,5 @@
+using CloudFileServer.Domain.Interfaces;
+
 namespace CloudFileServer.Domain.Models.TreeItems;
 
 public class WordFileTreeItem : FileTreeItem
@@ -17,4 +19,6 @@ public class WordFileTreeItem : FileTreeItem
     {
         PageCount = pageCount;
     }
+
+    public override void Accept(INodeVisitor visitor) => visitor.Visit(this);
 }

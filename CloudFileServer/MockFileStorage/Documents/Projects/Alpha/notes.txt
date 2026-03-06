@@ -1,0 +1,5 @@
+Alpha Project Notes
+===================
+- UI framework: React
+- API: REST
+- Auth: JWT

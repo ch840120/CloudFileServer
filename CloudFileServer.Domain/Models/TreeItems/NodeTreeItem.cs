@@ -1,3 +1,5 @@
+using CloudFileServer.Domain.Interfaces;
+
 namespace CloudFileServer.Domain.Models.TreeItems;
 
 public abstract class NodeTreeItem
@@ -10,6 +12,8 @@ public abstract class NodeTreeItem
     public DateTime UpdatedAt { get; }
 
     public abstract bool IsDirectory { get; }
+
+    public abstract void Accept(INodeVisitor visitor);
 
     private readonly List<Tag> _tags = new();
 

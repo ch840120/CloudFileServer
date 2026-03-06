@@ -28,6 +28,52 @@
       flex-shrink: 0;
     }
 
+    .toolbar {
+      background: #161b22;
+      border-bottom: 1px solid #21262d;
+      padding: 6px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      padding: 4px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 12px;
+      transition: background 0.1s;
+    }
+
+    .btn:hover { background: #30363d; }
+    .btn:active { background: #388bfd22; border-color: #58a6ff; }
+
+    .ext-input {
+      background: #0d1117;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 12px;
+      width: 80px;
+    }
+
+    .ext-input:focus { outline: none; border-color: #58a6ff; }
+
+    .toolbar-sep {
+      width: 1px;
+      height: 18px;
+      background: #30363d;
+      margin: 0 4px;
+    }
+
     header h1 {
       font-size: 15px;
       color: #58a6ff;
@@ -117,6 +163,14 @@
 
     .node-name.dir { color: #58a6ff; }
 
+    .tree-row.selected { background: #1f6feb33; border-left: 2px solid #58a6ff; }
+
+    @keyframes highlight-flash {
+      0%   { background: #d29922aa; }
+      100% { background: transparent; }
+    }
+    .tree-row.highlight { animation: highlight-flash 1.5s ease-out forwards; }
+
     .node-meta {
       color: #484f58;
       font-size: 11px;
@@ -131,12 +185,14 @@
       flex-shrink: 0;
     }
 
-    .tag-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
+    .tag-chip {
       display: inline-block;
-      title: attr(data-name);
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: bold;
+      color: #0d1117;
+      white-space: nowrap;
     }
 
     .children { display: block; }
@@ -209,6 +265,17 @@
   <h1>CloudFileServer &mdash; File Tree Monitor</h1>
 </header>
 
+<div class="toolbar">
+  <button class="btn" onclick="calcSize()">計算總容量</button>
+  <div class="toolbar-sep"></div>
+  <input class="ext-input" id="ext-input" type="text" placeholder=".docx" value=".docx" />
+  <button class="btn" onclick="searchExt()">副檔名搜尋</button>
+  <div class="toolbar-sep"></div>
+  <button class="btn" onclick="exportXml()">XML 輸出</button>
+  <div class="toolbar-sep"></div>
+  <button class="btn" onclick="clearLog()">清理視窗</button>
+</div>
+
 <div class="main">
   <!-- Left: Tree panel -->
   <div class="panel-tree">
@@ -263,7 +330,7 @@
     ];
 
     if (!node.isDirectory) {
-      rows.push(['Size', formatBytes(node.sizeBytes)]);
+      rows.push(['Size', node.sizeFormatted ?? '—']);
       rows.push(['Path', node.storagePath ?? '—']);
     }
     if (node.typeCode === 'Image') {
@@ -293,13 +360,16 @@
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
+  function clearHighlights() {
+    nodeRowMap.forEach(row => row.classList.remove('highlight'));
+  }
+
+  // ---- Selected node tracking ----
+  let selectedNodeId = null;
+  let selectedRow = null;
+  const nodeRowMap = new Map(); // nodeId → row element
+
   // ---- Tree rendering ----
-  const TYPE_ICONS = {
-    Directory: '📁',
-    Word:      '📝',
-    Image:     '🖼',
-    Text:      '📄',
-  };
 
   function countNodes(nodes) {
     let count = 0;
@@ -329,12 +399,6 @@
       }
       row.appendChild(toggle);
 
-      // Icon
-      const icon = document.createElement('span');
-      icon.className = 'icon';
-      icon.textContent = TYPE_ICONS[node.typeCode] ?? '📄';
-      row.appendChild(icon);
-
       // Name
       const name = document.createElement('span');
       name.className = 'node-name' + (node.isDirectory ? ' dir' : '');
@@ -347,11 +411,11 @@
       // Type-specific metadata
       let metaText = '';
       if (node.typeCode === 'Word' && node.pageCount != null) {
-        metaText = `${node.pageCount} 頁`;
+        metaText = `${node.sizeFormatted}, ${node.pageCount} 頁`;
       } else if (node.typeCode === 'Image' && node.widthPx != null) {
-        metaText = `${node.widthPx}×${node.heightPx}`;
+        metaText = `${node.sizeFormatted}, ${node.widthPx}×${node.heightPx}`;
       } else if (node.typeCode === 'Text' && node.encoding) {
-        metaText = node.encoding;
+        metaText = `${node.sizeFormatted}, ${node.encoding}`;
       }
       if (metaText) {
         const meta = document.createElement('span');
@@ -365,11 +429,11 @@
         const tagsEl = document.createElement('span');
         tagsEl.className = 'tags';
         for (const tag of node.tags) {
-          const dot = document.createElement('span');
-          dot.className = 'tag-dot';
-          dot.style.background = tag.color;
-          dot.title = tag.name;
-          tagsEl.appendChild(dot);
+          const chip = document.createElement('span');
+          chip.className = 'tag-chip';
+          chip.style.background = tag.color;
+          chip.textContent = tag.name;
+          tagsEl.appendChild(chip);
         }
         row.appendChild(tagsEl);
       }
@@ -385,8 +449,17 @@
         wrapper.appendChild(childrenEl);
       }
 
-      // Click: toggle + detail
+      // Register row in map for highlight lookup
+      nodeRowMap.set(node.id, row);
+
+      // Click: select + toggle + detail
       row.addEventListener('click', () => {
+        // Update selected state
+        if (selectedRow) selectedRow.classList.remove('selected');
+        selectedNodeId = node.id;
+        selectedRow = row;
+        row.classList.add('selected');
+
         showDetail(node);
         log(`Selected: ${node.name} (${node.typeCode})`, 'info');
         if (childrenEl) {
@@ -427,6 +500,77 @@
       document.getElementById('status-dot').style.background = '#f85149';
     }
   }
+
+  // ---- Toolbar actions ----
+  async function calcSize() {
+    const url = selectedNodeId
+      ? `/api/file-tree/calculate-size?nodeId=${selectedNodeId}`
+      : '/api/file-tree/calculate-size';
+    const scope = selectedNodeId ? `節點 #${selectedNodeId}` : '全樹';
+    log(`計算總容量（${scope}）中...`, 'info');
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      data.traversalLog.forEach(line => log(line, 'info'));
+      log(`${scope} 總容量：${formatBytes(data.totalBytes)}`, 'info');
+    } catch (err) {
+      log(`計算失敗：${err.message}`, 'error');
+    }
+  }
+
+  async function searchExt() {
+    const ext = document.getElementById('ext-input').value.trim();
+    if (!ext) { log('請輸入副檔名', 'warn'); return; }
+    log(`搜尋副檔名 ${ext} 中...`, 'info');
+    try {
+      const res = await fetch(`/api/file-tree/search-ext?ext=${encodeURIComponent(ext)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      data.traversalLog.forEach(line => log(line, 'info'));
+      if (data.results.length === 0) {
+        log(`找不到 ${ext} 的檔案`, 'warn');
+      } else {
+        log(`找到 ${data.results.length} 個 ${ext} 檔案：`, 'info');
+        data.results.forEach(n => {
+          log(`  → ${n.storagePath}`, 'info');
+          const row = nodeRowMap.get(n.id);
+          if (row) {
+            row.classList.remove('highlight');
+            void row.offsetWidth;
+            row.classList.add('highlight');
+          }
+        });
+      }
+    } catch (err) {
+      log(`搜尋失敗：${err.message}`, 'error');
+    }
+  }
+
+  function clearLog() {
+    document.getElementById('log-panel').innerHTML = '';
+  }
+
+  async function exportXml() {
+    log('產生 XML 結構中...', 'info');
+    try {
+      const res = await fetch('/api/file-tree/xml');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const xml = await res.text();
+      const blob = new Blob([xml], { type: 'text/xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'file-tree.xml';
+      a.click();
+      URL.revokeObjectURL(url);
+      log('XML 已下載：file-tree.xml', 'info');
+    } catch (err) {
+      log(`XML 輸出失敗：${err.message}`, 'error');
+    }
+  }
+
+  document.getElementById('ext-input').addEventListener('input', clearHighlights);
 
   loadTree();
 </script>

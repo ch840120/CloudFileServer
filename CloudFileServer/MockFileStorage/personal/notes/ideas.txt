@@ -1,0 +1,5 @@
+Ideas
+=====
+- Automate backup process
+- Add dark mode to dashboard
+- Build CLI tool for file management

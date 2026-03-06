@@ -13,6 +13,7 @@ public class NodeTreeItemDto
     public List<NodeTreeItemDto>? Children { get; init; }
     // File common
     public long? SizeBytes { get; init; }
+    public string? SizeFormatted { get; init; }
     public string? StoragePath { get; init; }
     // Image only
     public int? WidthPx { get; init; }
@@ -21,11 +22,4 @@ public class NodeTreeItemDto
     public string? Encoding { get; init; }
     // Word only
     public int? PageCount { get; init; }
-}
-
-public class TagDto
-{
-    public int Id { get; init; }
-    public string Name { get; init; } = string.Empty;
-    public string Color { get; init; } = string.Empty;
 }

@@ -1,3 +1,5 @@
+using CloudFileServer.Domain.Interfaces;
+
 namespace CloudFileServer.Domain.Models.TreeItems;
 
 public class DirectoryTreeItem : NodeTreeItem
@@ -16,6 +18,14 @@ public class DirectoryTreeItem : NodeTreeItem
         DateTime updatedAt)
         : base(id, name, NodeTypeCode.Directory, tags, createdAt, updatedAt)
     {
+    }
+
+    public override void Accept(INodeVisitor visitor)
+    {
+        visitor.EnterDirectory(this);
+        foreach (var child in _children)
+            child.Accept(visitor);
+        visitor.LeaveDirectory(this);
     }
 
     public void AddChild(NodeTreeItem child)

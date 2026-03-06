@@ -1,0 +1,4 @@
+2023 Backup Notes
+=================
+- Server migration completed
+- Old DB archived to tape

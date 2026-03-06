@@ -1,3 +1,5 @@
+using CloudFileServer.Domain.Interfaces;
+
 namespace CloudFileServer.Domain.Models.TreeItems;
 
 public class ImageFileTreeItem : FileTreeItem
@@ -20,4 +22,6 @@ public class ImageFileTreeItem : FileTreeItem
         WidthPx = widthPx;
         HeightPx = heightPx;
     }
+
+    public override void Accept(INodeVisitor visitor) => visitor.Visit(this);
 }
