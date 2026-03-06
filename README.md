@@ -77,6 +77,8 @@ C. 進階管理功能 (Bonus)
 <img width="1913" height="1080" alt="復原2" src="https://github.com/user-attachments/assets/44f6c970-2484-408c-bce8-94c57c6736c4" />
 
 ## 📐 UML 類別圖 - Domain Model
+<img width="6771" height="5991" alt="CloudFileServer-UML" src="https://github.com/user-attachments/assets/a76da387-dc4c-4410-a8b4-b9e260c7e7ed" />
+
 ## 🛢️ Schema 設計 - ER Model 圖
 <img width="1898" height="856" alt="CloudFileServerERModel" src="https://github.com/user-attachments/assets/c6490ef6-757f-4e1c-ae86-f7d341814f54" />
 
