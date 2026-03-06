@@ -52,3 +52,8 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# ASP.NET Core environment-specific settings (sensitive, not committed)
+appsettings.Development.json
+appsettings.*.json
+!appsettings.json
