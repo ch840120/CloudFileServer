@@ -85,6 +85,14 @@ USE [CloudFileServer];
   DELETE FROM NodeTypes;
 
   -- =============================================
+  -- 重置索引
+  -- =============================================
+  DBCC CHECKIDENT ('Tags', RESEED, 0);
+  DBCC CHECKIDENT ('NodeTypes', RESEED, 0);
+  DBCC CHECKIDENT ('Nodes', RESEED, 0);
+  -- =============================================
+
+  -- =============================================
   -- NodeTypes
   -- =============================================
   INSERT INTO NodeTypes (Code, IsLeaf, CreatedAt) VALUES (0, 0, GETUTCDATE());
