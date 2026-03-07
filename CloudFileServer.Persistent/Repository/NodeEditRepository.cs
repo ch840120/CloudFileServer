@@ -42,17 +42,15 @@ public class NodeEditRepository : INodeEditRepository
         long? targetParentId,
         CancellationToken cancellationToken = default)
     {
+        // Round-trip 1: load all active nodes; resolve subtree membership and naming sets in memory.
         var allNodes = await _dbContext.Nodes.AsNoTracking()
             .Where(n => !n.IsDeleted)
             .ToListAsync(cancellationToken);
 
         var subtreeIds = new HashSet<long>();
         CollectSubtreeIds(allNodes, sourceNodeId, subtreeIds);
+        var subtreeIdList = subtreeIds.ToList();
 
-        var subtreeNodes = allNodes.Where(n => subtreeIds.Contains(n.Id)).ToList();
-        var now = DateTime.UtcNow;
-
-        // Build sets to generate unique names/paths without timestamp
         var siblingNames = allNodes
             .Where(n => n.ParentId == targetParentId)
             .Select(n => n.Name)
@@ -63,13 +61,31 @@ public class NodeEditRepository : INodeEditRepository
             .Select(n => n.StoragePath!)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var sourceNode   = subtreeNodes.First(n => n.Id == sourceNodeId);
-        string rootCopyName = GetUniqueCopyName(sourceNode.Name, siblingNames);
+        // Round-trip 2: LEFT JOINs for 1:0..1 metas; correlated subquery for 1:many tags.
+        //               Tags cannot be LEFT JOINed directly — each tag row would multiply
+        //               the node row, requiring a dedup pass. Correlated subquery avoids this.
+        var subtreeData = await _dbContext.Nodes.AsNoTracking()
+            .Where(n => !n.IsDeleted && subtreeIdList.Contains(n.Id))
+            .Select(node => new
+            {
+                Node   = node,
+                Img    = _dbContext.NodeImageMetas.FirstOrDefault(m => m.NodeId == node.Id),
+                Txt    = _dbContext.NodeTextMetas.FirstOrDefault(m => m.NodeId == node.Id),
+                Wrd    = _dbContext.NodeWordMetas.FirstOrDefault(m => m.NodeId == node.Id),
+                TagIds = _dbContext.NodeTags.Where(t => t.NodeId == node.Id).Select(t => t.TagId).ToList()
+            })
+            .ToListAsync(cancellationToken);
 
-        var idMapping    = new Dictionary<long, long>();
+        var subtreeMap = subtreeData.ToDictionary(d => d.Node.Id);
+        var subtreeNodes = subtreeData.Select(d => d.Node).ToList();
+        var sourceNode  = subtreeNodes.First(n => n.Id == sourceNodeId);
+        string rootCopyName = GetUniqueCopyName(sourceNode.Name, siblingNames);
+        var now = DateTime.UtcNow;
+
+        var nodeMap      = new Dictionary<long, Node>();
         var fileMappings = new List<(string OldPath, string NewPath)>();
 
-        // BFS so parents are always created before children
+        // IO 3 prep: BFS builds all new Node objects with ParentId = null (set after IO 3).
         var queue = new Queue<Node>();
         queue.Enqueue(sourceNode);
 
@@ -80,22 +96,17 @@ public class NodeEditRepository : INodeEditRepository
             foreach (var child in subtreeNodes.Where(n => n.ParentId == original.Id))
                 queue.Enqueue(child);
 
-            long? newParentId = original.Id == sourceNodeId
-                ? targetParentId
-                : idMapping[original.ParentId!.Value];
-
             string? newStoragePath = null;
             if (original.StoragePath is not null)
             {
                 newStoragePath = GetUniqueCopyPath(original.StoragePath, existingPaths);
-                existingPaths.Add(newStoragePath); // reserve so subsequent nodes don't collide
+                existingPaths.Add(newStoragePath);
                 fileMappings.Add((original.StoragePath, newStoragePath));
             }
 
             var newNode = new Node
             {
                 NodeTypeId  = original.NodeTypeId,
-                ParentId    = newParentId,
                 Name        = original.Id == sourceNodeId ? rootCopyName : original.Name,
                 SizeBytes   = original.SizeBytes,
                 StoragePath = newStoragePath,
@@ -105,39 +116,40 @@ public class NodeEditRepository : INodeEditRepository
             };
 
             _dbContext.Nodes.Add(newNode);
-            await _dbContext.SaveChangesAsync(cancellationToken); // required to get IDENTITY Id
-
-            idMapping[original.Id] = newNode.Id;
+            nodeMap[original.Id] = newNode;
         }
 
-        // Copy meta records and tags
-        foreach (var (oldId, newId) in idMapping)
+        await _dbContext.SaveChangesAsync(cancellationToken); // IO 3: INSERT all new nodes (ParentId = null), EF back-fills IDENTITY Ids
+
+        // Back-fill ParentId in memory — EF detects Modified, IO 4 will UPDATE
+        foreach (var original in subtreeNodes)
         {
-            var imgMeta = await _dbContext.NodeImageMetas.FindAsync(new object[] { oldId }, cancellationToken);
-            if (imgMeta is not null)
-                _dbContext.NodeImageMetas.Add(new NodeImageMeta { NodeId = newId, WidthPx = imgMeta.WidthPx, HeightPx = imgMeta.HeightPx });
+            nodeMap[original.Id].ParentId = original.Id == sourceNodeId
+                ? targetParentId
+                : nodeMap[original.ParentId!.Value].Id;
+        }
 
-            var txtMeta = await _dbContext.NodeTextMetas.FindAsync(new object[] { oldId }, cancellationToken);
-            if (txtMeta is not null)
-                _dbContext.NodeTextMetas.Add(new NodeTextMeta { NodeId = newId, Encoding = txtMeta.Encoding });
+        // IO 4: UPDATE ParentId + INSERT all metas/tags — one SaveChanges
+        foreach (var (oldId, newNode) in nodeMap)
+        {
+            var d = subtreeMap[oldId];
 
-            var wrdMeta = await _dbContext.NodeWordMetas.FindAsync(new object[] { oldId }, cancellationToken);
-            if (wrdMeta is not null)
-                _dbContext.NodeWordMetas.Add(new NodeWordMeta { NodeId = newId, PageCount = wrdMeta.PageCount });
+            if (d.Img is not null)
+                _dbContext.NodeImageMetas.Add(new NodeImageMeta { NodeId = newNode.Id, WidthPx = d.Img.WidthPx, HeightPx = d.Img.HeightPx });
 
-            // Copy tags
-            var tagIds = await _dbContext.NodeTags
-                .AsNoTracking()
-                .Where(nt => nt.NodeId == oldId)
-                .Select(nt => nt.TagId)
-                .ToListAsync(cancellationToken);
-            foreach (var tagId in tagIds)
-                _dbContext.NodeTags.Add(new NodeTag { NodeId = newId, TagId = tagId });
+            if (d.Txt is not null)
+                _dbContext.NodeTextMetas.Add(new NodeTextMeta { NodeId = newNode.Id, Encoding = d.Txt.Encoding });
+
+            if (d.Wrd is not null)
+                _dbContext.NodeWordMetas.Add(new NodeWordMeta { NodeId = newNode.Id, PageCount = d.Wrd.PageCount });
+
+            foreach (var tagId in d.TagIds)
+                _dbContext.NodeTags.Add(new NodeTag { NodeId = newNode.Id, TagId = tagId });
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return new CopyResult(idMapping[sourceNodeId], fileMappings.AsReadOnly());
+        return new CopyResult(nodeMap[sourceNodeId].Id, fileMappings.AsReadOnly());
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────
